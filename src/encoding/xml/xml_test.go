@@ -1212,6 +1212,39 @@ func TestIssue20685(t *testing.T) {
 	}
 }
 
+func TestIssue20614(t *testing.T) {
+	testCases := []struct {
+		s    string
+		want string
+	}{
+		{`v1           x
+
+			v1`, "v1 x v1"},
+		{"v1   ![CDATA b \r\n			]v1", "v1 ![CDATA b ]v1"},
+		{"v1   b \r\n v1", "v1 b v1"},
+		{"v1   b \n\t\t\tv1", "v1 b v1"},
+		{"v1   b \r v1", "v1 b v1"},
+		{"   v1    \r\n v1 ", "v1 v1"}, // TODO Check result
+		{"   v1   b \r v1  ", "v1 b v1"},
+		{`ab   
+                   	+:++ cd`,
+			"ab +:++ cd"},
+	}
+	var tok Token
+	var err error
+	for _, tc := range testCases {
+		d := NewDecoder(strings.NewReader(fmt.Sprintf(`<a p="%s"/>`, tc.s)))
+		tok, err = d.Token()
+		if err != nil {
+			t.Errorf("%q: unexpected error %s", tc.s, err)
+			continue
+		}
+		if e, ok := tok.(StartElement); ok && e.Attr[0].Value != tc.want {
+			t.Errorf("got %q, want %q", e.Attr[0].Value, tc.want)
+		}
+	}
+}
+
 func tokenMap(mapping func(t Token) Token) func(TokenReader) TokenReader {
 	return func(src TokenReader) TokenReader {
 		return mapper{
