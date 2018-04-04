@@ -575,7 +575,7 @@ func (d *Decoder) rawToken() (Token, error) {
 	if b != '<' {
 		// Text section.
 		d.ungetc(b)
-		data := d.text(-1, false)
+		data := d.text(-1, false, false)
 		if data == nil {
 			return nil, d.err
 		}
@@ -705,7 +705,7 @@ func (d *Decoder) rawToken() (Token, error) {
 				}
 			}
 			// Have <![CDATA[.  Read text until ]]>.
-			data := d.text(-1, true)
+			data := d.text(-1, true, false)
 			if data == nil {
 				return nil, d.err
 			}
@@ -861,7 +861,7 @@ func (d *Decoder) attrval() []byte {
 	}
 	// Handle quoted attribute values
 	if b == '"' || b == '\'' {
-		return d.text(int(b), false)
+		return d.text(int(b), false, true)
 	}
 	// Handle unquoted attribute values for strict parsers
 	if d.Strict {
@@ -990,10 +990,14 @@ var entity = map[string]rune{
 // If quote >= 0, we are in a quoted string and need to find the matching quote.
 // If cdata == true, we are in a <![CDATA[ section and need to find ]]>.
 // On failure return nil and leave the error in d.err.
-func (d *Decoder) text(quote int, cdata bool) []byte {
+func (d *Decoder) text(quote int, cdata bool, normalize bool) []byte {
 	var b0, b1 byte
 	var trunc int
 	d.buf.Reset()
+	if normalize {
+		d.space()
+	}
+	sp := false // space is printed, skip all following ones
 Input:
 	for {
 		b, ok := d.getc()
@@ -1125,18 +1129,40 @@ Input:
 
 		// We must rewrite unescaped \r and \r\n into \n.
 		if b == '\r' {
-			d.buf.WriteByte('\n')
+			if normalize {
+				if !sp {
+					d.buf.WriteByte(' ')
+					sp = true
+				}
+			} else {
+				d.buf.WriteByte('\n')
+			}
 		} else if b1 == '\r' && b == '\n' {
 			// Skip \r\n--we already wrote \n.
 		} else {
-			d.buf.WriteByte(b)
+			if normalize {
+				if b == ' ' || b == '\n' || b == '\t' {
+					if !sp {
+						d.buf.WriteByte(' ')
+						sp = true
+					}
+				} else {
+					d.buf.WriteByte(b)
+					sp = false
+				}
+			} else {
+				d.buf.WriteByte(b)
+				sp = false
+			}
 		}
 
 		b0, b1 = b1, b
 	}
 	data := d.buf.Bytes()
 	data = data[0 : len(data)-trunc]
-
+	if len(data) > 0 && sp && data[len(data)-1] == ' ' {
+		data = data[0 : len(data)-1]
+	}
 	// Inspect each rune for being a disallowed character.
 	buf := data
 	for len(buf) > 0 {
