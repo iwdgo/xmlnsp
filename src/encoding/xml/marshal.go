@@ -337,6 +337,9 @@ type printer struct {
 // createAttrPrefix finds the name space prefix attribute to use for the given name space,
 // defining a new prefix if necessary. It returns the prefix.
 func (p *printer) createAttrPrefix(url string) string {
+	if url == xmlnsPrefix {
+		return url
+	}
 	if prefix := p.attrPrefix[url]; prefix != "" {
 		return prefix
 	}
