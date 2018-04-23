@@ -1754,6 +1754,16 @@ var marshalIndentTests = []struct {
 		Indent:    "\t",
 		ExpectXML: "<agent handle=\"007\">\n\t<Identity>James Bond</Identity><redacted/>\n</agent>",
 	},
+	{
+		Value: &SecretAgent{
+			Handle:    "007",
+			Identity:  "James Bond",
+			Obfuscate: "<redacted/>",
+		},
+		Prefix:    "",
+		Indent:    "",
+		ExpectXML: fmt.Sprintf("<agent handle=\"007\">\n<Identity>James Bond</Identity><redacted/>\n</agent>"),
+	},
 }
 
 func TestMarshalErrors(t *testing.T) {
