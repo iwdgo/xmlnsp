@@ -158,6 +158,7 @@ func NewEncoder(w io.Writer) *Encoder {
 func (enc *Encoder) Indent(prefix, indent string) {
 	enc.p.prefix = prefix
 	enc.p.indent = indent
+	enc.p.minIndent = true
 }
 
 // Encode writes the XML encoding of v to the stream.
@@ -321,6 +322,7 @@ type printer struct {
 	seq        int
 	indent     string
 	prefix     string
+	minIndent  bool
 	depth      int
 	indentedIn bool
 	putNewline bool
@@ -1041,7 +1043,7 @@ func (p *printer) cachedWriteError() error {
 }
 
 func (p *printer) writeIndent(depthDelta int) {
-	if len(p.prefix) == 0 && len(p.indent) == 0 {
+	if !p.minIndent {
 		return
 	}
 	if depthDelta < 0 {
