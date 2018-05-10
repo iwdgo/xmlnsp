@@ -2,6 +2,9 @@
 /*
 /*/
 !/go/src/encoding/xml
+!AUTHORS
+!LICENSE
+!PATENTS
 # From original repo
 .DS_Store
 *.[56789ao]
