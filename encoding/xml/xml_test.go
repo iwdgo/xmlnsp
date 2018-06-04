@@ -1004,8 +1004,8 @@ func TestEncodeXMLNS(t *testing.T) {
 		ok   bool
 	}{
 		{encodeXMLNS1, `<Test xmlns="http://example.com/ns"><Body>hello world</Body></Test>`, true},
-		{encodeXMLNS2, `<Test><body xmlns="http://example.com/ns">hello world</body></Test>`, true},
-		{encodeXMLNS3, `<Test xmlns="http://example.com/ns"><Body>hello world</Body></Test>`, true},
+		{encodeXMLNS2, `<Test><http://example.com/ns:body>hello world</http://example.com/ns:body></Test>`, true},
+		{encodeXMLNS3, `<http://example.com/ns:Test><Body>hello world</Body></http://example.com/ns:Test>`, true},
 		{encodeXMLNS4, `<Test xmlns="http://example.com/ns"><Body>hello world</Body></Test>`, false},
 	}
 
@@ -1136,7 +1136,7 @@ func TestIssue7113(t *testing.T) {
 
 	var a A
 	structSpace := "b"
-	xmlTest := `<A xmlns="` + structSpace + `"><C xmlns=""></C><d></d></A>`
+	xmlTest := fmt.Sprintf(`<%s:A><C xmlns=""></C><d></d></%s:A>`, structSpace, structSpace)
 	t.Log(xmlTest)
 	err := Unmarshal([]byte(xmlTest), &a)
 	if err != nil {
@@ -1240,6 +1240,64 @@ func TestIssue20685(t *testing.T) {
 		if err == nil && !tc.ok {
 			t.Errorf("%q: Closing tag with namespace : expected error, got nil", tc.s)
 		}
+	}
+}
+
+func TestIssue9519_1(t *testing.T) {
+
+	type STIXType struct {
+		XMLName Name   `xml:"stix STIX_Package,omitempty"`
+		Version string `xml:"version,attr,omitempty"`
+	}
+
+	var rawxmldata = `<stix:STIX_Package></stix:STIX_Package>`
+	var i STIXType
+	err := Unmarshal([]byte(rawxmldata), &i)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("%s", i.XMLName)
+	data, err := MarshalIndent(i, "", "    ")
+	if err != nil {
+		t.Error(err)
+	}
+	if string(data) != rawxmldata {
+		t.Errorf("got %q, want %q", data, rawxmldata)
+	}
+	t.Logf("%q", data)
+}
+
+func TestIssue9519_2(t *testing.T) {
+	// Expects prefixed notation prefix:tag name iso xmlns:
+	type HouseType struct {
+		XMLName   Name   `xml:"prefix11 House"`
+		MessageId string `xml:"message_id,attr"`
+	}
+
+	var tm HouseType
+	var err error
+
+	tm.MessageId = "test1234"
+
+	var data1 []byte
+	data1, err = Marshal(tm)
+	if err != nil {
+		t.Errorf("%s : handling namespace : got error %v, want no fail \n", data1, err)
+	}
+
+	want := fmt.Sprintf(`<prefix11:House message_id="%s"></prefix11:House>`, tm.MessageId)
+	if string(data1) != want {
+		t.Errorf("got %q, want %q", data1, want)
+	}
+
+	var tm2 HouseType
+	err = Unmarshal([]byte(data1), &tm2)
+	if err != nil {
+		t.Errorf("%s : handling namespace : got error %v, want no fail \n", data1, err)
+	}
+
+	if tm.MessageId != tm2.MessageId {
+		t.Errorf("handling namespace : got %s, want %s \n", tm.MessageId, tm2.MessageId)
 	}
 }
 
