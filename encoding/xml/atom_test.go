@@ -26,6 +26,8 @@ var atomValue = &Feed{
 }
 
 var atomXML = `` +
+	// TODO TestMarshal/46 fails. When expected XML is <http://www.w3.org/2005/Atom:feed...
+	//  Unmarshaling fails with a missing />
 	`<feed xmlns="http://www.w3.org/2005/Atom" updated="2003-12-13T18:30:02Z">` +
 	`<title>Example Feed</title>` +
 	`<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>` +

@@ -493,7 +493,7 @@ func TestMarshalNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	want := `<Tables><table xmlns="http://www.w3.org/TR/html4/">hello</table><table xmlns="http://www.w3schools.com/furniture">world</table></Tables>`
+	want := `<Tables><http://www.w3.org/TR/html4/:table>hello</http://www.w3.org/TR/html4/:table><http://www.w3schools.com/furniture:table>world</http://www.w3schools.com/furniture:table></Tables>`
 	str := string(data)
 	if str != want {
 		t.Errorf("have: %q\nwant: %q\n", str, want)

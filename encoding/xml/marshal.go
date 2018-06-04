@@ -729,13 +729,12 @@ func (p *printer) writeStart(start *StartElement) error {
 
 	p.writeIndent(1)
 	p.WriteByte('<')
-	p.WriteString(start.Name.Local)
-
+	// TODO If Name.Space must be a prefix
 	if start.Name.Space != "" {
-		p.WriteString(` xmlns="`)
-		p.EscapeString(start.Name.Space)
-		p.WriteByte('"')
+		p.WriteString(start.Name.Space)
+		p.WriteString(":")
 	}
+	p.WriteString(start.Name.Local)
 
 	// Attributes
 	for _, attr := range start.Attr {
@@ -775,6 +774,10 @@ func (p *printer) writeEnd(name Name) error {
 	p.writeIndent(-1)
 	p.WriteByte('<')
 	p.WriteByte('/')
+	if name.Space != "" {
+		p.WriteString(name.Space)
+		p.WriteString(":")
+	}
 	p.WriteString(name.Local)
 	p.WriteByte('>')
 	p.popPrefix()
