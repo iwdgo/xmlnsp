@@ -1,0 +1,30 @@
+name: go-on-tip
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.21.x
+      id: go
+
+    - name: Get file patches
+      uses: actions/checkout@v3
+
+    - name: Build go from tip
+      uses: iwdgo/gotip-build@patches-windows
+      id: gotip
+      with:
+        go_variables: $CGO_ENABLED = 0; $GOROOT_FINAL = "/"
+        test_build: true
+
+    - name: Upload go executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: gotip-${{ runner.os }}-${{ runner.arch }}
+        path: .\go\bin
