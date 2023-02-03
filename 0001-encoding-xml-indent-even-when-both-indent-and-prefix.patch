@@ -1,0 +1,69 @@
+From 144a09094f799737f804b1d7a6f194d5054abd81 Mon Sep 17 00:00:00 2001
+From: Constantin Konstantinidis <constantinkonstantinidis@gmail.com>
+Date: Mon, 23 Apr 2018 18:08:04 +0200
+Subject: [PATCH] encoding/xml: indent even when both indent and prefix are
+ empty
+
+Add a non-regression case to the existing test.
+
+Fixes #13185.
+
+Change-Id: I55a6ae097e2331c3b4567071204f880f40300544
+---
+ src/encoding/xml/marshal.go      |  4 +++-
+ src/encoding/xml/marshal_test.go | 10 ++++++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/encoding/xml/marshal.go b/src/encoding/xml/marshal.go
+index 0c3cc0dc36..a8c72b7936 100644
+--- a/src/encoding/xml/marshal.go
++++ b/src/encoding/xml/marshal.go
+@@ -158,6 +158,7 @@ func NewEncoder(w io.Writer) *Encoder {
+ func (enc *Encoder) Indent(prefix, indent string) {
+ 	enc.p.prefix = prefix
+ 	enc.p.indent = indent
++	enc.p.minIndent = true
+ }
+ 
+ // Encode writes the XML encoding of v to the stream.
+@@ -321,6 +322,7 @@ type printer struct {
+ 	seq        int
+ 	indent     string
+ 	prefix     string
++	minIndent  bool
+ 	depth      int
+ 	indentedIn bool
+ 	putNewline bool
+@@ -1040,7 +1042,7 @@ func (p *printer) cachedWriteError() error {
+ }
+ 
+ func (p *printer) writeIndent(depthDelta int) {
+-	if len(p.prefix) == 0 && len(p.indent) == 0 {
++	if !p.minIndent {
+ 		return
+ 	}
+ 	if depthDelta < 0 {
+diff --git a/src/encoding/xml/marshal_test.go b/src/encoding/xml/marshal_test.go
+index f6bcc7fd30..334770fdac 100644
+--- a/src/encoding/xml/marshal_test.go
++++ b/src/encoding/xml/marshal_test.go
+@@ -1753,6 +1753,16 @@ var marshalIndentTests = []struct {
+ 		Indent:    "\t",
+ 		ExpectXML: fmt.Sprintf("<agent handle=\"007\">\n\t<Identity>James Bond</Identity><redacted/>\n</agent>"),
+ 	},
++	{
++		Value: &SecretAgent{
++			Handle:    "007",
++			Identity:  "James Bond",
++			Obfuscate: "<redacted/>",
++		},
++		Prefix:    "",
++		Indent:    "",
++		ExpectXML: fmt.Sprintf("<agent handle=\"007\">\n<Identity>James Bond</Identity><redacted/>\n</agent>"),
++	},
+ }
+ 
+ func TestMarshalErrors(t *testing.T) {
+-- 
+2.37.3.windows.1
+
