@@ -1,0 +1,153 @@
+From 1db82bb3c59f74172d3ba280acdd95f1fa1915c8 Mon Sep 17 00:00:00 2001
+From: Constantin Konstantinidis <constantinkonstantinidis@gmail.com>
+Date: Wed, 4 Apr 2018 11:57:51 +0200
+Subject: [PATCH] encoding/xml: enforce normalization of attributes values
+
+https://www.w3.org/TR/REC-xml/#AVNormalize
+
+Fixes #20614
+
+Change-Id: Ic4014c4cd5c44f6460de9e4fdbb5a34596575a96
+---
+ src/encoding/xml/xml.go      | 40 +++++++++++++++++++++++++++++-------
+ src/encoding/xml/xml_test.go | 33 +++++++++++++++++++++++++++++
+ 2 files changed, 66 insertions(+), 7 deletions(-)
+
+diff --git a/src/encoding/xml/xml.go b/src/encoding/xml/xml.go
+index 1f3084e5ca..a9cadaf447 100644
+--- a/src/encoding/xml/xml.go
++++ b/src/encoding/xml/xml.go
+@@ -564,7 +564,7 @@ func (d *Decoder) rawToken() (Token, error) {
+ 	if b != '<' {
+ 		// Text section.
+ 		d.ungetc(b)
+-		data := d.text(-1, false)
++		data := d.text(-1, false, false)
+ 		if data == nil {
+ 			return nil, d.err
+ 		}
+@@ -694,7 +694,7 @@ func (d *Decoder) rawToken() (Token, error) {
+ 				}
+ 			}
+ 			// Have <![CDATA[.  Read text until ]]>.
+-			data := d.text(-1, true)
++			data := d.text(-1, true, false)
+ 			if data == nil {
+ 				return nil, d.err
+ 			}
+@@ -850,7 +850,7 @@ func (d *Decoder) attrval() []byte {
+ 	}
+ 	// Handle quoted attribute values
+ 	if b == '"' || b == '\'' {
+-		return d.text(int(b), false)
++		return d.text(int(b), false, true)
+ 	}
+ 	// Handle unquoted attribute values for strict parsers
+ 	if d.Strict {
+@@ -979,10 +979,14 @@ var entity = map[string]rune{
+ // If quote >= 0, we are in a quoted string and need to find the matching quote.
+ // If cdata == true, we are in a <![CDATA[ section and need to find ]]>.
+ // On failure return nil and leave the error in d.err.
+-func (d *Decoder) text(quote int, cdata bool) []byte {
++func (d *Decoder) text(quote int, cdata bool, normalize bool) []byte {
+ 	var b0, b1 byte
+ 	var trunc int
+ 	d.buf.Reset()
++	if normalize {
++		d.space()
++	}
++	sp := false // space is printed, skip all following ones
+ Input:
+ 	for {
+ 		b, ok := d.getc()
+@@ -1113,18 +1117,40 @@ Input:
+ 
+ 		// We must rewrite unescaped \r and \r\n into \n.
+ 		if b == '\r' {
+-			d.buf.WriteByte('\n')
++			if normalize {
++				if !sp {
++					d.buf.WriteByte(' ')
++					sp = true
++				}
++			} else {
++				d.buf.WriteByte('\n')
++			}
+ 		} else if b1 == '\r' && b == '\n' {
+ 			// Skip \r\n--we already wrote \n.
+ 		} else {
+-			d.buf.WriteByte(b)
++			if normalize {
++				if b == ' ' || b == '\n' || b == '\t' {
++					if !sp {
++						d.buf.WriteByte(' ')
++						sp = true
++					}
++				} else {
++					d.buf.WriteByte(b)
++					sp = false
++				}
++			} else {
++				d.buf.WriteByte(b)
++				sp = false
++			}
+ 		}
+ 
+ 		b0, b1 = b1, b
+ 	}
+ 	data := d.buf.Bytes()
+ 	data = data[0 : len(data)-trunc]
+-
++	if len(data) > 0 && sp && data[len(data)-1] == ' ' {
++		data = data[0 : len(data)-1]
++	}
+ 	// Inspect each rune for being a disallowed character.
+ 	buf := data
+ 	for len(buf) > 0 {
+diff --git a/src/encoding/xml/xml_test.go b/src/encoding/xml/xml_test.go
+index 8205ac3148..de5840cac7 100644
+--- a/src/encoding/xml/xml_test.go
++++ b/src/encoding/xml/xml_test.go
+@@ -1178,6 +1178,39 @@ func TestIssue20685(t *testing.T) {
+ 	}
+ }
+ 
++func TestIssue20614(t *testing.T) {
++	testCases := []struct {
++		s    string
++		want string
++	}{
++		{`v1           x
++
++			v1`, "v1 x v1"},
++		{"v1   ![CDATA b \r\n			]v1", "v1 ![CDATA b ]v1"},
++		{"v1   b \r\n v1", "v1 b v1"},
++		{"v1   b \n\t\t\tv1", "v1 b v1"},
++		{"v1   b \r v1", "v1 b v1"},
++		{"   v1    \r\n v1 ", "v1 v1"}, // TODO Check result
++		{"   v1   b \r v1  ", "v1 b v1"},
++		{`ab   
++                   	+:++ cd`,
++			"ab +:++ cd"},
++	}
++	var tok Token
++	var err error
++	for _, tc := range testCases {
++		d := NewDecoder(strings.NewReader(fmt.Sprintf(`<a p="%s"/>`, tc.s)))
++		tok, err = d.Token()
++		if err != nil {
++			t.Errorf("%q: unexpected error %s", tc.s, err)
++			continue
++		}
++		if e, ok := tok.(StartElement); ok && e.Attr[0].Value != tc.want {
++			t.Errorf("got %q, want %q", e.Attr[0].Value, tc.want)
++		}
++	}
++}
++
+ func tokenMap(mapping func(t Token) Token) func(TokenReader) TokenReader {
+ 	return func(src TokenReader) TokenReader {
+ 		return mapper{
+-- 
+2.37.3.windows.1
+
