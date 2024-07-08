@@ -19,7 +19,7 @@ jobs:
     - name: Cherry pick patches from Gerrit
       run: |
         # https://go.dev/issue/7535
-        git fetch https://go.googlesource.com/go refs/changes/55/107755/8 && git cherry-pick FETCH_HEAD
+        https://go-review.googlesource.com/c/go/+/107755#:~:text=5b567c4.diff.base64-,5b567c4.diff.zip,-CLOSE
 
     - name: Build go from tip
       uses: iwdgo/gotip-build@master-windows
