@@ -19,7 +19,8 @@ jobs:
     - name: Cherry pick patches from Gerrit
       run: |
         # https://go.dev/issue/7535
-        git fetch https://go.googlesource.com/go refs/changes/55/107755/8 && git checkout -b change-107755 FETCH_HEAD && git format-patch -1
+        git status
+        # git fetch https://go.googlesource.com/go refs/changes/55/107755/8 && git checkout -b change-107755 FETCH_HEAD && git format-patch -1
 
     - name: Build go from tip
       uses: iwdgo/gotip-build
