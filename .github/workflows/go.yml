@@ -18,10 +18,14 @@ jobs:
 
     - name: Format patches
       run: |
-        git fetch https://go.googlesource.com/go refs/changes/55/107755/8 && git checkout -b change-107755 FETCH_HEAD
-        git format-patch -1
-        git fetch https://go.googlesource.com/go refs/changes/75/596975/1 && git checkout -b change-596975 FETCH_HEAD
-        git format-patch -1
+        # go.dev/issue/7535
+        git fetch https://go.googlesource.com/go refs/changes/55/107755/8 && git checkout -b change-107755 FETCH_HEAD && git format-patch -1
+        # go.dev/issue/8068
+        git fetch https://go.googlesource.com/go refs/changes/75/596975/1 && git checkout -b change-596975 FETCH_HEAD && git format-patch -1
+        # go.dev/issue/13185
+        git fetch https://go.googlesource.com/go refs/changes/97/108797/4 && git checkout -b change-108797 FETCH_HEAD && git format-patch -1
+        # go.dev/issue/10538
+        git fetch https://go.googlesource.com/go refs/changes/16/108616/5 && git checkout -b change-108616 FETCH_HEAD && git format-patch -1
 
     - name: Build go from tip
       uses: iwdgo/gotip-build@master
