@@ -24,6 +24,8 @@ jobs:
         git fetch https://go.googlesource.com/go refs/changes/75/596975/1 && git checkout -b change-596975 FETCH_HEAD && git format-patch -1
         # go.dev/issue/10538
         git fetch https://go.googlesource.com/go refs/changes/16/108616/5 && git checkout -b change-108616 FETCH_HEAD && git format-patch -1
+        # go.dev/issue/20614
+        git fetch https://go.googlesource.com/go refs/changes/55/104655/6 && git checkout -b change-104655 FETCH_HEAD && git format-patch -1
         # go.dev/issue/13185
         git fetch https://go.googlesource.com/go refs/changes/97/108797/4 && git checkout -b change-108797 FETCH_HEAD && git format-patch -1
 
