@@ -35,7 +35,7 @@ jobs:
         mv 0001* 20614.patch
         # go.dev/issue/9519
         # TODO Conflicts due to previous changes in 13185.patch
-        git fetch https://go.googlesource.com/go refs/changes/56/116056/4 && git checkout FETCH_HEAD && git format-patch -2
+        git fetch https://go.googlesource.com/go refs/changes/56/116056/4 && git checkout -b change-116056 FETCH_HEAD && git format-patch -2
         rm 0001*
         mv 0002* v2-09519.patch
     
